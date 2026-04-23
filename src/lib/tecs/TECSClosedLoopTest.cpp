@@ -85,11 +85,11 @@ static constexpr float STE_RATE_MIN_ABS = MIN_SINK_RATE  * G;
 
 // --- Testing constants --------------------------------------------------------
 
-static constexpr float MAX_V_TRACKING_ERR = 0.5; ///< [m/s]
+static constexpr float MAX_V_TRACKING_ERR = 0.1; ///< [m/s]
 
 // --- Aircraft model -----------------------------------------------------------
 // pitch_cmd drives altitude rate instantly; all pitch-rate limiting comes from
-// TECS's vert_accel_limit.  STE uses the same piecewise-linear throttle-to-energy
+// TECS's vert_accel_limit. STE uses the same piecewise-linear throttle-to-energy
 // map as TECS internally (_calcThrottleControlOutput), so the feedforward is
 // exact and integrators stay at zero.
 
@@ -105,7 +105,7 @@ AircraftState aircraft_step(float dt, float throttle, float pitch_cmd, AircraftS
 			       ? (throttle - THROTTLE_TRIM) * STE_RATE_MAX     / (THROTTLE_MAX  - THROTTLE_TRIM)
 			       : (throttle - THROTTLE_TRIM) * STE_RATE_MIN_ABS / (THROTTLE_TRIM - THROTTLE_MIN);
 
-	const float h_dot    = s.V * pitch_cmd;
+	const float h_dot    = s.V * pitch_cmd; // Only correct in a linearised sense (close to level)
 	const float spe_rate = G * h_dot;
 	const float ske_rate = ste_rate - spe_rate;
 	const float V_dot    = (s.V > 0.1f) ? ske_rate / s.V : 0.f; // If V < 0.1 we have long stalled...
@@ -522,5 +522,5 @@ TEST_F(TECSClosedLoopTest, FastDescend)
 	// Throttle is forced to minimum during fast descend
 	EXPECT_NEAR(_tecs.getThrottleSetpoint(), _params.throttle_min, 1e-3f);
 	// Pitch loop drives airspeed toward tas_max
-	EXPECT_NEAR(_state.V, _params.tas_max, 1.0f);
+	EXPECT_NEAR(_state.V, _params.tas_max, MAX_V_TRACKING_ERR);
 }

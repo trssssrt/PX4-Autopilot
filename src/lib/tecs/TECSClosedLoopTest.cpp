@@ -524,3 +524,80 @@ TEST_F(TECSClosedLoopTest, FastDescend)
 	// Pitch loop drives airspeed toward tas_max
 	EXPECT_NEAR(_state.V, _params.tas_max, MAX_V_TRACKING_ERR);
 }
+
+TEST_F(TECSClosedLoopTest, AirspeedDip)
+{
+	// This captures performance of airspeed recovery _before_ the TECS
+	// fixes, to ensure no regressions.
+
+	// With default tuning.
+	initAircraftState();
+	initParams();
+	initTecs();
+
+	// We inject an airspeed disturbance by modifying the state (e.g. sudden
+	// wind change, aircraft pushed back)
+	_state.V -= 4.0f;
+
+	// Capture the tracking error pretty precisely over the next 20 sec
+	// First second: error halves
+	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 4.0f);
+	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 3.0f);
+	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 2.5f);
+	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 2.0f);
+	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 2.0f);
+
+	// First 10 sec: back to 0.1 m/s error
+	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 1.0f);
+	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.5f);
+	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.2f);
+	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.2f);
+	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.2f);
+	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.2f);
+	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.2f);
+	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.2f);
+	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.1f);
+
+	// Error stays below ever after
+	const float max_v_err = run(100.0f);
+	EXPECT_LT(max_v_err, MAX_V_TRACKING_ERR);
+}
+
+
+TEST_F(TECSClosedLoopTest, AirspeedBump)
+{
+	// This captures performance of airspeed recovery _before_ the TECS
+	// fixes, to ensure no regressions.
+
+	// With default tuning.
+	initAircraftState();
+	initParams();
+	initTecs();
+
+	// We inject an airspeed disturbance by modifying the state (e.g. sudden
+	// wind change, aircraft pushed back)
+	_state.V += 4.0f;
+
+	// Capture the tracking error pretty precisely over the next 20 sec
+	// First second: error decreases slightly
+	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 4.0f);
+	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 4.0f);
+	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 3.5f);
+	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 3.5f);
+	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 3.0f);
+
+	// First 10 sec: back to 0.1 m/s error
+	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 2.0f);
+	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 1.0f);
+	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.5f);
+	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.3f);
+	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.2f);
+	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.2f);
+	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.2f);
+	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.2f);
+	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.1f);
+
+	// Error stays below ever after
+	const float max_v_err = run(100.0f);
+	EXPECT_LT(max_v_err, MAX_V_TRACKING_ERR);
+}

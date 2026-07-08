@@ -1220,6 +1220,9 @@ FixedWingModeManager::control_auto_takeoff(const hrt_abstime &now, const float c
 		fw_runway_control.timestamp = now;
 		fw_runway_control.runway_takeoff_state = _runway_takeoff.getState();
 		fw_runway_control.wheel_steering_enabled = true;
+		// steer the nose along the guidance course towards the takeoff waypoint (line from the runway start
+		// point through the takeoff waypoint, incl. cross-track correction) during the ground roll
+		fw_runway_control.wheel_steering_yaw_setpoint = sp.course_setpoint;
 		fw_runway_control.wheel_steering_nudging_rate = _param_rwto_nudge.get() ? _sticks.getYaw() : 0.f;
 
 		_fixed_wing_runway_control_pub.publish(fw_runway_control);
@@ -1398,6 +1401,8 @@ FixedWingModeManager::control_auto_takeoff_no_nav(const hrt_abstime &now, const 
 		fw_runway_control.timestamp = now;
 		fw_runway_control.runway_takeoff_state = _runway_takeoff.getState();
 		fw_runway_control.wheel_steering_enabled = true;
+		// no navigation reference available: hold the heading captured when steering engaged
+		fw_runway_control.wheel_steering_yaw_setpoint = NAN;
 		fw_runway_control.wheel_steering_nudging_rate = _param_rwto_nudge.get() ? _sticks.getYaw() : 0.f;
 
 		_fixed_wing_runway_control_pub.publish(fw_runway_control);
@@ -1647,6 +1652,8 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 	fw_runway_control.timestamp = now;
 	fw_runway_control.runway_takeoff_state = fixed_wing_runway_control_s::STATE_FLYING; // not in takeoff, use FLYING as default
 	fw_runway_control.wheel_steering_enabled = true;
+	// during landing rollout hold the heading captured at touchdown
+	fw_runway_control.wheel_steering_yaw_setpoint = NAN;
 	fw_runway_control.wheel_steering_nudging_rate = _param_fw_lnd_nudge.get() > LandingNudgingOption::kNudgingDisabled ?
 			_sticks.getYaw() : 0.f;
 
@@ -1820,6 +1827,8 @@ FixedWingModeManager::control_auto_landing_circular(const hrt_abstime &now, cons
 	fw_runway_control.timestamp = now;
 	fw_runway_control.runway_takeoff_state = fixed_wing_runway_control_s::STATE_FLYING; // not in takeoff, use FLYING as default
 	fw_runway_control.wheel_steering_enabled = true;
+	// during landing rollout hold the heading captured at touchdown
+	fw_runway_control.wheel_steering_yaw_setpoint = NAN;
 	fw_runway_control.wheel_steering_nudging_rate = _param_fw_lnd_nudge.get() > LandingNudgingOption::kNudgingDisabled ?
 			_sticks.getYaw() : 0.f;
 
